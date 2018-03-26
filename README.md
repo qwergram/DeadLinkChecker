@@ -4,6 +4,7 @@ A quick script for testing dead links.
 ## Installation & Requirements
 1. Install Python 3.5+
 2. Download [`link_checker.py`](https://raw.githubusercontent.com/qwergram/DeadLinkChecker/master/link_checker.py) to a location included in your PATH
+3. Download [`requirements.txt`](https://raw.githubusercontent.com/qwergram/DeadLinkChecker/master/requirements.txt) and run `pip install -r requirements.txt` in the same local directory.
 3. Execute `python link_checker.py <params>` from any terminal.
 
 ## How to Use
