@@ -1,4 +1,4 @@
-# Norton Pengra - https://github.com/qwergram/DeadLinkChecker
+# Norton Pengra - npengra317@gmail.com
 
 import io
 import os
@@ -79,12 +79,11 @@ class LinkChecker(object):
                 loop.run_in_executor(
                     executor,
                     self.ping,
-                    link            
+                    link
                 ) for link in self.links
             ]
             for _ in await asyncio.gather(*futures):
                 pass
-            
 
     def report(self):
         mode = 'a' if os.path.exists(self.file_name) else 'w'
@@ -99,9 +98,9 @@ class LinkChecker(object):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description='Generate a report of a website\'s dead links. Make sure you have a good connection to begin with!')
-    parser.add_argument('links', nargs='*', help='Links to test')
+    parser.add_argument('links', nargs='*', help='Links to test. Seperate links by space.')
     parser.add_argument('-output', default="output.csv",
-                        help='Specify the path of the report (csv file) Default: ./output.csv')
+                        help='Specify the path of the report (csv file) Default: "./output.csv". If the file exists, then it will be appended to.')
     parser.add_argument('-workers', default=20, type=int,
                         help='Maximum number of threads for url requests. Default: 20')
 
