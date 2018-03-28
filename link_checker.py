@@ -94,6 +94,7 @@ class LinkChecker(object):
             if method != 'get':
                 debug("Retrying #{}:".format(self.completed), target)
                 return self.ping(path, 'get')
+            self.completed += 1
             self.bad_links.append([target, '', str(e)])
         except requests.exceptions.ReadTimeout as e:
             # Retry Timeouts
