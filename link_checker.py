@@ -13,6 +13,7 @@ from bs4 import BeautifulSoup
 
 VERBOSE = False
 
+
 def debug(*args, **kwargs):
     if VERBOSE:
         print(*args, **kwargs)
@@ -33,7 +34,7 @@ class LinkChecker(object):
         self.completed = 0
 
     def ping(self, path, method="get"):
-        
+
         if path.startswith('#'):
             # It's the same page
             return ''
@@ -66,30 +67,41 @@ class LinkChecker(object):
         headers = {
             "User-Agent": "PengraBot Accessibility Tester/1.0"
         }
-        
+
         try:
             if method == "get":
-                response = requests.get(target, headers=headers, timeout=self.timeout)
+                response = requests.get(
+                    target, headers=headers, timeout=self.timeout)
             elif method == "head":
-                response = requests.head(target, headers=headers, timeout=self.timeout)
+                response = requests.head(
+                    target, headers=headers, timeout=self.timeout)
             else:
                 raise Exception("Unknown verb: %s" % method)
             if response.ok:
                 self.completed += 1
                 debug("Done #{}:".format(self.completed), target)
                 return response.text
-            
+
+            # Retry 404s Sometimes HEAD requests return 404s when GET requests don't.
             elif method != 'get':
                 debug("Retrying #{}:".format(self.completed), target)
                 return self.ping(path, 'get')
-            
+
             self.bad_links.append(
                 [target, response.status_code, response.reason])
         except requests.exceptions.ConnectionError as e:
+            # Retry Connection
+            if method != 'get':
+                debug("Retrying #{}:".format(self.completed), target)
+                return self.ping(path, 'get')
             self.bad_links.append([target, '', str(e)])
         except requests.exceptions.ReadTimeout as e:
+            # Retry Timeouts
+            if method != 'get':
+                debug("Retrying #{}:".format(self.completed), target)
+                return self.ping(path, 'get')
             self.bad_links.append([target, '', 'Timeout'])
-                
+
         self.completed += 1
         debug("Done #{} w/ Errors:".format(self.completed), target)
 
@@ -130,7 +142,8 @@ class LinkChecker(object):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description='Generate a report of a website\'s dead links. Make sure you have a good connection to begin with!')
-    parser.add_argument('links', nargs='*', help='Links to test. Seperate links by space.')
+    parser.add_argument('links', nargs='*',
+                        help='Links to test. Seperate links by space.')
     parser.add_argument('-output', default="output.csv",
                         help='Specify the path of the report (csv file) Default: "./output.csv". If the file exists, then it will be appended to.')
     parser.add_argument('-workers', default=20, type=int,
