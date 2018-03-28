@@ -11,10 +11,17 @@ import concurrent.futures
 from urllib.parse import urlparse
 from bs4 import BeautifulSoup
 
+VERBOSE = False
+
+def debug(*args, **kwargs):
+    if VERBOSE:
+        print(*args, **kwargs)
+
 
 class LinkChecker(object):
 
-    def __init__(self, url, output, threads):
+    def __init__(self, url, output, threads, timeout):
+        self.timeout = timeout
         self.url = urlparse(url)
         self.domain = self.url.netloc
         self.scheme = self.url.scheme + '://'
@@ -23,8 +30,13 @@ class LinkChecker(object):
         self.bad_links = []
         self.file_name = output
         self.threads = threads
+        self.completed = 0
 
-    def ping(self, path):
+    def ping(self, path, method="get"):
+        
+        if path.startswith('#'):
+            # It's the same page
+            return ''
         if path.startswith('/'):
             # It's a new relative path (begins with slash)
             target = self.scheme + self.domain + path
@@ -45,6 +57,8 @@ class LinkChecker(object):
             target = self.scheme + self.domain + \
                 self.path[:len(self.path) - self.path[::-1].index('/')]
 
+        target = target.strip()
+
         """
         Occasionally, 406ish errors will occur. The headers will prevent these errors.
         """
@@ -52,15 +66,32 @@ class LinkChecker(object):
         headers = {
             "User-Agent": "PengraBot Accessibility Tester/1.0"
         }
-
+        
         try:
-            response = requests.get(target, headers=headers)
+            if method == "get":
+                response = requests.get(target, headers=headers, timeout=self.timeout)
+            elif method == "head":
+                response = requests.head(target, headers=headers, timeout=self.timeout)
+            else:
+                raise Exception("Unknown verb: %s" % method)
             if response.ok:
+                self.completed += 1
+                debug("Done #{}:".format(self.completed), target)
                 return response.text
+            
+            elif method != 'get':
+                debug("Retrying #{}:".format(self.completed), target)
+                return self.ping(path, 'get')
+            
             self.bad_links.append(
                 [target, response.status_code, response.reason])
         except requests.exceptions.ConnectionError as e:
             self.bad_links.append([target, '', str(e)])
+        except requests.exceptions.ReadTimeout as e:
+            self.bad_links.append([target, '', 'Timeout'])
+                
+        self.completed += 1
+        debug("Done #{} w/ Errors:".format(self.completed), target)
 
         # Uncomment next line to break program upon finding bad links.
         # raise Exception("Bad link: %s [%s %s]" % (target, response.status_code, response.reason))
@@ -69,7 +100,7 @@ class LinkChecker(object):
         self.soup = BeautifulSoup(self.ping(self.path), "lxml")
         for link in self.soup.find_all('a'):
             link = link.get('href')
-            if link:
+            if link and link not in self.links:
                 self.links.append(link)
 
     async def check(self):
@@ -79,7 +110,8 @@ class LinkChecker(object):
                 loop.run_in_executor(
                     executor,
                     self.ping,
-                    link
+                    link,
+                    "head"
                 ) for link in self.links
             ]
             for _ in await asyncio.gather(*futures):
@@ -104,12 +136,18 @@ if __name__ == "__main__":
     parser.add_argument('-workers', default=20, type=int,
                         help='Maximum number of threads for url requests. Default: 20')
 
+    parser.add_argument('-timeout', default=5.0, type=float,
+                        help='Timeout (seconds) per request. Default: 5 (seconds)')
+    parser.add_argument('-verbose', default=False, type=bool,
+                        help='Display debug messages. Default: False.')
+
     args = parser.parse_args()
+    VERBOSE = args.verbose
 
     loop = asyncio.get_event_loop()
 
     for link in args.links:
-        handle = LinkChecker(link, args.output, args.workers)
+        handle = LinkChecker(link, args.output, args.workers, args.timeout)
         handle.rip()
         loop.run_until_complete(handle.check())
         handle.report()
