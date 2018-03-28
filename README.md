@@ -11,6 +11,7 @@ A quick script for testing dead links.
 Execute `python link_checker.py -h` to pull up the following instructions:
 ```
 usage: link_checker.py [-h] [-output OUTPUT] [-workers WORKERS]
+                       [-timeout TIMEOUT] [-verbose VERBOSE]
                        [links [links ...]]
 
 Generate a report of a website's dead links. Make sure you have a good
@@ -25,6 +26,8 @@ optional arguments:
                     "./output.csv". If the file exists, then it will be
                     appended to.
   -workers WORKERS  Maximum number of threads for url requests. Default: 20
+  -timeout TIMEOUT  Timeout (seconds) per request. Default: 5 (seconds)
+  -verbose VERBOSE  Display debug messages. Default: False.
 ```
 
 **Example Commands:**
@@ -36,4 +39,10 @@ python link_checker.py https://developer.microsoft.com/en-us/windows/iot https:/
 python link_checker.py https://developer.microsoft.com/en-us/windows/iot/getstarted/prototype/selectdevice -workers 1
 
 python link_checker.py https://developer.microsoft.com/en-us/windows/iot/getstarted/prototype/gettools https://developer.microsoft.com/en-us/windows/iot/Downloads https://support.microsoft.com/en-us/help/4023474/surface-troubleshoot-surface-pen-with-single-button-on-flat-edge
+
+python .\link_checker.py https://developer.microsoft.com/en-us/windows/iot ht
+tps://developer.microsoft.com/en-us/windows/iot/GetStarted.htm https://developer.microsoft.com/en-us/windows/iot/getstar
+ted/prototype/selectdevice https://developer.microsoft.com/en-us/windows/iot/getstarted/prototype/gettools https://devel
+oper.microsoft.com/en-us/windows/iot/Downloads https://support.microsoft.com/en-us/help/4023474/surface-troubleshoot-sur
+face-pen-with-single-button-on-flat-edge -verbose True
 ```
